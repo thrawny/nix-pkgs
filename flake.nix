@@ -48,6 +48,8 @@
             packages = [
               pkgs.just
               pkgs.nixfmt
+              pkgs.nodejs_24
+              pkgs.python3
             ];
           };
         }
