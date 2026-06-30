@@ -16,13 +16,13 @@ let
 in
 buildNpmPackage (finalAttrs: {
   pname = "t3code";
-  version = "0.0.27";
+  version = "0.0.28";
 
   nodejs = nodejs_24;
 
   src = fetchurl {
     url = "https://registry.npmjs.org/t3/-/t3-${finalAttrs.version}.tgz";
-    hash = "sha512-quBdb42BXXKXxyfqIFEnvCYrMndzw92JbAoIPkDZr2aiGfRyLT+nyvDjcJjK2IHSO9ZczEmda1Fx8spBIEX/HA==";
+    hash = "sha512-IitsK0GNHcFmiuJVRDHR7SifhUKt4UVWnoVoJ+wcjqZDh+EHsEL+NKU1ia+WSWil5EYIxSG1KZzbYDxm6pX+sA==";
   };
 
   npmDeps = importNpmLock {
