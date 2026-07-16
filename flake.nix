@@ -24,6 +24,7 @@
           pkgs = pkgsFor system;
         in
         rec {
+          acpx = pkgs.callPackage ./packages/acpx/package.nix { };
           firecrawl-cli = pkgs.callPackage ./packages/firecrawl-cli/package.nix { };
           t3code = pkgs.callPackage ./packages/t3code/package.nix { };
 
@@ -33,6 +34,7 @@
       );
 
       overlays.default = final: _prev: {
+        acpx = final.callPackage ./packages/acpx/package.nix { };
         firecrawl-cli = final.callPackage ./packages/firecrawl-cli/package.nix { };
         t3code = final.callPackage ./packages/t3code/package.nix { };
         t3 = final.t3code;
