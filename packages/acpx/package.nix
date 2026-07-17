@@ -32,6 +32,12 @@ buildNpmPackage (finalAttrs: {
   postPatch = ''
     cp ${./package.json} package.json
     cp ${./package-lock.json} package-lock.json
+
+    # codex-acp 0.0.44 crashes on apply_patch file moves ("Moved to:" diff
+    # lines); the ^0.0.44 pin never floats past 0.0.x, so bump to the fixed
+    # 1.x line. Fails the build if upstream changes or drops the pin.
+    substituteInPlace dist/live-checkpoint-*.js \
+      --replace-fail 'codex: "^0.0.44",' 'codex: "^1.1.4",'
   '';
 
   postFixup = ''
