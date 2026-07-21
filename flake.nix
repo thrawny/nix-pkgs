@@ -26,6 +26,7 @@
         rec {
           acpx = pkgs.callPackage ./packages/acpx/package.nix { };
           firecrawl-cli = pkgs.callPackage ./packages/firecrawl-cli/package.nix { };
+          posthog-cli = pkgs.callPackage ./packages/posthog-cli/package.nix { };
           t3code = pkgs.callPackage ./packages/t3code/package.nix { };
 
           t3 = t3code;
@@ -36,6 +37,7 @@
       overlays.default = final: _prev: {
         acpx = final.callPackage ./packages/acpx/package.nix { };
         firecrawl-cli = final.callPackage ./packages/firecrawl-cli/package.nix { };
+        posthog-cli = final.callPackage ./packages/posthog-cli/package.nix { };
         t3code = final.callPackage ./packages/t3code/package.nix { };
         t3 = final.t3code;
       };
