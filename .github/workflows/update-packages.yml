@@ -1,6 +1,14 @@
 name: Update packages
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/update-packages.yml"
+      - "flake.lock"
+      - "flake.nix"
+      - "packages/**"
   schedule:
     - cron: "0 12 * * *" # Daily at noon UTC
   workflow_dispatch:
@@ -36,12 +44,13 @@ jobs:
       - name: Summarize update
         id: summary
         env:
+          EVENT_NAME: ${{ github.event_name }}
           FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force }}
           NEEDS_UPDATE: ${{ steps.update.outputs.needs_update }}
         run: |
           set -euo pipefail
           needs_build=false
-          if [ "$NEEDS_UPDATE" = "true" ] || [ "$FORCE" = "true" ]; then
+          if [ "$EVENT_NAME" = "push" ] || [ "$NEEDS_UPDATE" = "true" ] || [ "$FORCE" = "true" ]; then
             needs_build=true
           fi
           echo "needs_build=$needs_build" >> "$GITHUB_OUTPUT"
@@ -83,13 +92,15 @@ jobs:
       - name: Build and push Linux packages
         run: |
           set -euo pipefail
-          nix build .#t3code .#firecrawl-cli --print-out-paths | cachix push thrawny
+          nix build .#acpx .#firecrawl-cli .#posthog-cli .#t3code --print-out-paths | cachix push thrawny
 
       - name: Smoke test Linux packages
         run: |
           set -euo pipefail
-          nix run .#t3code -- --version
+          nix run .#acpx -- --version
           nix run .#firecrawl-cli -- --version
+          nix run .#posthog-cli -- --version
+          nix run .#t3code -- --version
 
   commit-update:
     needs:
