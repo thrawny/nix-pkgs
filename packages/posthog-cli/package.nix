@@ -3,6 +3,9 @@
   stdenv,
   fetchurl,
   autoPatchelfHook,
+  cacert,
+  makeWrapper,
+  nodejs_24,
   zlib,
 }:
 
@@ -40,7 +43,10 @@ stdenv.mkDerivation {
 
   sourceRoot = "posthog-cli-${platform.target}";
 
-  nativeBuildInputs = lib.optionals stdenv.hostPlatform.isLinux [ autoPatchelfHook ];
+  nativeBuildInputs = [
+    makeWrapper
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isLinux [ autoPatchelfHook ];
   buildInputs = lib.optionals stdenv.hostPlatform.isLinux [
     stdenv.cc.cc
     zlib
@@ -52,7 +58,19 @@ stdenv.mkDerivation {
     install -Dm755 posthog-cli "$out/bin/posthog-cli"
     cp -r lib "$out/lib"
 
+    wrapProgram "$out/bin/posthog-cli" \
+      --set-default POSTHOG_API_CLI_PATH "$out/lib/posthog-api-cli.mjs" \
+      --prefix PATH : ${lib.makeBinPath [ nodejs_24 ]}
+
     runHook postInstall
+  '';
+
+  doInstallCheck = true;
+  installCheckPhase = ''
+    runHook preInstallCheck
+    SSL_CERT_FILE=${cacert}/etc/ssl/certs/ca-bundle.crt \
+      "$out/bin/posthog-cli" api --agent-help >/dev/null
+    runHook postInstallCheck
   '';
 
   meta = {
