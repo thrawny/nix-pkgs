@@ -1,7 +1,12 @@
 {
   lib,
   appimageTools,
+  dejavu_fonts,
   fetchurl,
+  makeFontsConf,
+  makeWrapper,
+  noto-fonts,
+  noto-fonts-color-emoji,
 }:
 
 let
@@ -16,9 +21,19 @@ let
   appimageContents = appimageTools.extractType2 {
     inherit pname version src;
   };
+
+  fontsConf = makeFontsConf {
+    fontDirectories = [
+      dejavu_fonts
+      noto-fonts
+      noto-fonts-color-emoji
+    ];
+  };
 in
 appimageTools.wrapType2 {
   inherit pname version src;
+
+  nativeBuildInputs = [ makeWrapper ];
 
   extraInstallCommands = ''
     install -m 444 -D ${appimageContents}/t3code.desktop \
@@ -30,6 +45,9 @@ appimageTools.wrapType2 {
     substituteInPlace $out/share/applications/t3code.desktop \
       --replace-fail 'Name=T3 Code (Alpha)' 'Name=T3 Code' \
       --replace-fail 'Exec=AppRun --no-sandbox %U' 'Exec=t3code-desktop %U'
+
+    wrapProgram $out/bin/t3code-desktop \
+      --set FONTCONFIG_FILE ${lib.escapeShellArg fontsConf}
   '';
 
   meta = {
