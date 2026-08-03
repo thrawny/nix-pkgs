@@ -32,15 +32,23 @@
           t3 = t3code;
           default = t3code;
         }
+        // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
+          t3code-desktop = pkgs.callPackage ./packages/t3code-desktop/package.nix { };
+        }
       );
 
-      overlays.default = final: _prev: {
-        acpx = final.callPackage ./packages/acpx/package.nix { };
-        firecrawl-cli = final.callPackage ./packages/firecrawl-cli/package.nix { };
-        posthog-cli = final.callPackage ./packages/posthog-cli/package.nix { };
-        t3code = final.callPackage ./packages/t3code/package.nix { };
-        t3 = final.t3code;
-      };
+      overlays.default =
+        final: _prev:
+        {
+          acpx = final.callPackage ./packages/acpx/package.nix { };
+          firecrawl-cli = final.callPackage ./packages/firecrawl-cli/package.nix { };
+          posthog-cli = final.callPackage ./packages/posthog-cli/package.nix { };
+          t3code = final.callPackage ./packages/t3code/package.nix { };
+          t3 = final.t3code;
+        }
+        // final.lib.optionalAttrs (final.stdenv.hostPlatform.system == "x86_64-linux") {
+          t3code-desktop = final.callPackage ./packages/t3code-desktop/package.nix { };
+        };
 
       devShells = forAllSystems (
         system:
