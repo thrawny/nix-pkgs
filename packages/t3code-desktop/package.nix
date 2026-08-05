@@ -3,10 +3,12 @@
   appimageTools,
   dejavu_fonts,
   fetchurl,
+  fontconfig,
   makeFontsConf,
   makeWrapper,
   noto-fonts,
   noto-fonts-color-emoji,
+  runCommand,
 }:
 
 let
@@ -22,13 +24,19 @@ let
     inherit pname version src;
   };
 
-  fontsConf = makeFontsConf {
+  fontsConfBase = makeFontsConf {
     fontDirectories = [
       dejavu_fonts
       noto-fonts
       noto-fonts-color-emoji
     ];
   };
+  fontsConf = runCommand "fonts.conf" { } ''
+    substitute ${fontsConfBase} "$out" \
+      --replace-fail \
+        '<include ignore_missing="yes">/etc/fonts/conf.d</include>' \
+        '<include ignore_missing="yes">${fontconfig.out}/etc/fonts/conf.d</include>'
+  '';
 in
 appimageTools.wrapType2 {
   inherit pname version src;

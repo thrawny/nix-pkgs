@@ -2,7 +2,14 @@
   lib,
   stdenv,
   appimageTools,
+  dejavu_fonts,
   fetchurl,
+  fontconfig,
+  makeFontsConf,
+  makeWrapper,
+  noto-fonts,
+  noto-fonts-color-emoji,
+  runCommand,
 }:
 
 let
@@ -30,9 +37,25 @@ let
   appimageContents = appimageTools.extractType2 {
     inherit pname version src;
   };
+
+  fontsConfBase = makeFontsConf {
+    fontDirectories = [
+      dejavu_fonts
+      noto-fonts
+      noto-fonts-color-emoji
+    ];
+  };
+  fontsConf = runCommand "fonts.conf" { } ''
+    substitute ${fontsConfBase} "$out" \
+      --replace-fail \
+        '<include ignore_missing="yes">/etc/fonts/conf.d</include>' \
+        '<include ignore_missing="yes">${fontconfig.out}/etc/fonts/conf.d</include>'
+  '';
 in
 appimageTools.wrapType2 {
   inherit pname version src;
+
+  nativeBuildInputs = [ makeWrapper ];
 
   extraInstallCommands = ''
     install -m 444 -D ${appimageContents}/orca-ide.desktop \
@@ -43,6 +66,9 @@ appimageTools.wrapType2 {
 
     substituteInPlace $out/share/applications/orca.desktop \
       --replace-fail 'Exec=AppRun --no-sandbox %U' 'Exec=orca %U'
+
+    wrapProgram $out/bin/orca \
+      --set FONTCONFIG_FILE ${lib.escapeShellArg fontsConf}
   '';
 
   meta = {
