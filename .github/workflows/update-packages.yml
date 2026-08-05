@@ -92,7 +92,7 @@ jobs:
       - name: Build and push Linux packages
         run: |
           set -euo pipefail
-          nix build .#acpx .#firecrawl-cli .#posthog-cli .#t3code --print-out-paths | cachix push thrawny
+          nix build .#acpx .#firecrawl-cli .#orca .#posthog-cli .#t3code --print-out-paths | cachix push thrawny
 
       - name: Smoke test Linux packages
         run: |

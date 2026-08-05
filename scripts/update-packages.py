@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Stable-only updater for thrawny-pkgs.
 
-The source of truth is npm's `latest` dist-tag for each package. The script
+The script follows stable npm dist-tags and non-prerelease GitHub releases. It
 updates local derivations but never follows moving branches like main.
 """
 
 from __future__ import annotations
 
+import base64
 import json
 import os
 import re
@@ -15,6 +16,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,6 +30,27 @@ def run(cmd: list[str], *, cwd: Path = ROOT, check: bool = True) -> subprocess.C
 def npm_view(package: str, field: str) -> str:
     result = run(["npm", "view", package, field, "--json"])
     return json.loads(result.stdout)
+
+
+def github_latest_release(owner: str, repo: str) -> dict:
+    request = urllib.request.Request(
+        f"https://api.github.com/repos/{owner}/{repo}/releases/latest",
+        headers={
+            "Accept": "application/vnd.github+json",
+            "User-Agent": "thrawny-pkgs-updater",
+            "X-GitHub-Api-Version": "2022-11-28",
+        },
+    )
+    with urllib.request.urlopen(request) as response:
+        return json.load(response)
+
+
+def sri_from_github_digest(digest: str) -> str:
+    algorithm, hex_digest = digest.split(":", maxsplit=1)
+    if algorithm != "sha256":
+        raise RuntimeError(f"Unsupported GitHub asset digest: {algorithm}")
+    encoded = base64.b64encode(bytes.fromhex(hex_digest)).decode()
+    return f"sha256-{encoded}"
 
 
 def read(path: Path) -> str:
@@ -97,6 +120,39 @@ def update_firecrawl_cli() -> tuple[bool, str | None]:
     return True, f"firecrawl-cli: {current} -> {latest}"
 
 
+def update_orca() -> tuple[bool, str | None]:
+    package_path = ROOT / "packages/orca/package.nix"
+    current = current_version(package_path)
+    release = github_latest_release("stablyai", "orca")
+    latest = release["tag_name"].removeprefix("v")
+
+    if current == latest:
+        print(f"orca already up to date ({current})")
+        return False, None
+
+    print(f"orca: {current} -> {latest}")
+    asset_digests = {asset["name"]: asset.get("digest") for asset in release["assets"]}
+    wanted_assets = ("orca-linux.AppImage", "orca-linux-arm64.AppImage")
+    missing = [asset for asset in wanted_assets if not asset_digests.get(asset)]
+    if missing:
+        raise RuntimeError(f"Release v{latest} is missing asset digests for: {', '.join(missing)}")
+
+    text = set_version(read(package_path), latest)
+    for asset in wanted_assets:
+        sri_hash = sri_from_github_digest(asset_digests[asset])
+        text, replacements = re.subn(
+            rf'(asset = "{re.escape(asset)}";\n\s*hash = )"[^"]+";',
+            rf'\1"{sri_hash}";',
+            text,
+            count=1,
+        )
+        if replacements != 1:
+            raise RuntimeError(f"Could not update hash for {asset}")
+
+    write(package_path, text)
+    return True, f"orca: {current} -> {latest}"
+
+
 def remove_overrides(package_json: dict) -> dict:
     cleaned = dict(package_json)
     cleaned.pop("overrides", None)
@@ -149,7 +205,7 @@ def update_t3code() -> tuple[bool, str | None]:
 
 def main() -> int:
     changed: list[str] = []
-    for updater in (update_t3code, update_firecrawl_cli):
+    for updater in (update_t3code, update_firecrawl_cli, update_orca):
         did_change, message = updater()
         if did_change and message:
             changed.append(message)

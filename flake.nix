@@ -32,6 +32,9 @@
           t3 = t3code;
           default = t3code;
         }
+        // nixpkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+          orca = pkgs.callPackage ./packages/orca/package.nix { };
+        }
         // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
           t3code-desktop = pkgs.callPackage ./packages/t3code-desktop/package.nix { };
         }
@@ -45,6 +48,9 @@
           posthog-cli = final.callPackage ./packages/posthog-cli/package.nix { };
           t3code = final.callPackage ./packages/t3code/package.nix { };
           t3 = final.t3code;
+        }
+        // final.lib.optionalAttrs final.stdenv.hostPlatform.isLinux {
+          orca = final.callPackage ./packages/orca/package.nix { };
         }
         // final.lib.optionalAttrs (final.stdenv.hostPlatform.system == "x86_64-linux") {
           t3code-desktop = final.callPackage ./packages/t3code-desktop/package.nix { };
