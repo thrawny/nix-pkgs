@@ -37,7 +37,7 @@ jobs:
       - name: Install Nix
         uses: cachix/install-nix-action@v31.10.6
 
-      - name: Check stable npm releases
+      - name: Check package releases
         id: update
         run: nix develop -c scripts/update-packages.py
 
@@ -92,7 +92,7 @@ jobs:
       - name: Build and push Linux packages
         run: |
           set -euo pipefail
-          nix build .#acpx .#firecrawl-cli .#orca .#posthog-cli .#t3code --print-out-paths | cachix push thrawny
+          nix build .#acpx .#firecrawl-cli .#orca .#posthog-cli .#t3code .#t3code-nightly --print-out-paths | cachix push thrawny
 
       - name: Smoke test Linux packages
         run: |
@@ -101,6 +101,7 @@ jobs:
           nix run .#firecrawl-cli -- --version
           nix run .#posthog-cli -- --version
           nix run .#t3code -- --version
+          nix run .#t3code-nightly -- --version
 
   commit-update:
     needs:

@@ -28,8 +28,10 @@
           firecrawl-cli = pkgs.callPackage ./packages/firecrawl-cli/package.nix { };
           posthog-cli = pkgs.callPackage ./packages/posthog-cli/package.nix { };
           t3code = pkgs.callPackage ./packages/t3code/package.nix { };
+          t3code-nightly = pkgs.callPackage ./packages/t3code-nightly/package.nix { };
 
           t3 = t3code;
+          t3-nightly = t3code-nightly;
           default = t3code;
         }
         // nixpkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
@@ -47,7 +49,9 @@
           firecrawl-cli = final.callPackage ./packages/firecrawl-cli/package.nix { };
           posthog-cli = final.callPackage ./packages/posthog-cli/package.nix { };
           t3code = final.callPackage ./packages/t3code/package.nix { };
+          t3code-nightly = final.callPackage ./packages/t3code-nightly/package.nix { };
           t3 = final.t3code;
+          t3-nightly = final.t3code-nightly;
         }
         // final.lib.optionalAttrs final.stdenv.hostPlatform.isLinux {
           orca = final.callPackage ./packages/orca/package.nix { };

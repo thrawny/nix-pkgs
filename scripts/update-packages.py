@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Stable-only updater for thrawny-pkgs.
+"""Package updater for thrawny-pkgs.
 
-The script follows stable npm dist-tags and non-prerelease GitHub releases. It
-updates local derivations but never follows moving branches like main.
+The script follows stable releases except for packages that explicitly expose a
+nightly output. It updates local derivations but never follows moving branches
+like main.
 """
 
 from __future__ import annotations
@@ -22,9 +23,18 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def run(cmd: list[str], *, cwd: Path = ROOT, check: bool = True) -> subprocess.CompletedProcess[str]:
+def run(
+    cmd: list[str], *, cwd: Path = ROOT, check: bool = True
+) -> subprocess.CompletedProcess[str]:
     print(f"$ {' '.join(cmd)}", file=sys.stderr)
-    return subprocess.run(cmd, cwd=cwd, check=check, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    return subprocess.run(
+        cmd,
+        cwd=cwd,
+        check=check,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
 
 
 def npm_view(package: str, field: str) -> str:
@@ -76,7 +86,9 @@ def prefetch_github_tag(owner: str, repo: str, tag: str) -> str:
     url = f"https://github.com/{owner}/{repo}/archive/refs/tags/{tag}.tar.gz"
     result = run(["nix-prefetch-url", "--unpack", url])
     base32 = result.stdout.strip().splitlines()[-1]
-    converted = run(["nix", "hash", "convert", "--hash-algo", "sha256", "--to", "sri", base32])
+    converted = run(
+        ["nix", "hash", "convert", "--hash-algo", "sha256", "--to", "sri", base32]
+    )
     return converted.stdout.strip()
 
 
@@ -102,7 +114,7 @@ def update_firecrawl_cli() -> tuple[bool, str | None]:
     )
     text = re.sub(
         r'(pnpmDeps = fetchPnpmDeps \{.*?\n\s*hash = )"[^"]+";',
-        r'\1lib.fakeHash;',
+        r"\1lib.fakeHash;",
         text,
         count=1,
         flags=re.S,
@@ -111,11 +123,15 @@ def update_firecrawl_cli() -> tuple[bool, str | None]:
 
     build = run(["nix", "build", ".#firecrawl-cli", "--no-link"], check=False)
     print(build.stdout, file=sys.stderr)
-    match = re.search(r'got:\s+(sha256-[A-Za-z0-9+/=]+)', build.stdout)
+    match = re.search(r"got:\s+(sha256-[A-Za-z0-9+/=]+)", build.stdout)
     if not match:
-        raise RuntimeError("Could not determine firecrawl-cli pnpmDeps hash from nix build output")
+        raise RuntimeError(
+            "Could not determine firecrawl-cli pnpmDeps hash from nix build output"
+        )
 
-    text = read(package_path).replace("hash = lib.fakeHash;", f'hash = "{match.group(1)}";', 1)
+    text = read(package_path).replace(
+        "hash = lib.fakeHash;", f'hash = "{match.group(1)}";', 1
+    )
     write(package_path, text)
     return True, f"firecrawl-cli: {current} -> {latest}"
 
@@ -135,7 +151,9 @@ def update_orca() -> tuple[bool, str | None]:
     wanted_assets = ("orca-linux.AppImage", "orca-linux-arm64.AppImage")
     missing = [asset for asset in wanted_assets if not asset_digests.get(asset)]
     if missing:
-        raise RuntimeError(f"Release v{latest} is missing asset digests for: {', '.join(missing)}")
+        raise RuntimeError(
+            f"Release v{latest} is missing asset digests for: {', '.join(missing)}"
+        )
 
     text = set_version(read(package_path), latest)
     for asset in wanted_assets:
@@ -159,53 +177,84 @@ def remove_overrides(package_json: dict) -> dict:
     return cleaned
 
 
-def update_t3code() -> tuple[bool, str | None]:
-    package_path = ROOT / "packages/t3code/package.nix"
-    package_json_path = ROOT / "packages/t3code/package.json"
-    package_lock_path = ROOT / "packages/t3code/package-lock.json"
+def update_t3code_channel(
+    name: str, dist_tag: str, package_dir: str
+) -> tuple[bool, str | None]:
+    package_root = ROOT / f"packages/{package_dir}"
+    package_path = package_root / "package.nix"
+    package_json_path = package_root / "package.json"
+    package_lock_path = package_root / "package-lock.json"
 
     current = current_version(package_path)
-    latest = npm_view("t3", "dist-tags.latest")
+    latest = npm_view("t3", f"dist-tags.{dist_tag}")
 
-    if current == latest:
-        print(f"t3code already up to date ({current})")
+    if current == latest and package_json_path.exists() and package_lock_path.exists():
+        print(f"{name} already up to date ({current})")
         return False, None
 
     integrity = npm_view(f"t3@{latest}", "dist.integrity")
-    print(f"t3code: {current} -> {latest}")
+    print(f"{name}: {current} -> {latest}")
 
     with tempfile.TemporaryDirectory() as tmpdir_str:
         tmpdir = Path(tmpdir_str)
-        pack = run(["npm", "pack", f"t3@{latest}", "--pack-destination", str(tmpdir), "--silent"])
+        pack = run(
+            [
+                "npm",
+                "pack",
+                f"t3@{latest}",
+                "--pack-destination",
+                str(tmpdir),
+                "--silent",
+            ]
+        )
         tarball = tmpdir / pack.stdout.strip().splitlines()[-1]
         extract_dir = tmpdir / "extract"
         extract_dir.mkdir()
         with tarfile.open(tarball, "r:gz") as archive:
             archive.extractall(extract_dir, filter="data")
 
-        upstream_package_json = json.loads((extract_dir / "package/package.json").read_text())
+        upstream_package_json = json.loads(
+            (extract_dir / "package/package.json").read_text()
+        )
         package_json_path.write_text(json.dumps(upstream_package_json, indent=2) + "\n")
 
         lock_dir = tmpdir / "lock"
         lock_dir.mkdir()
-        (lock_dir / "package.json").write_text(json.dumps(remove_overrides(upstream_package_json), indent=2) + "\n")
+        (lock_dir / "package.json").write_text(
+            json.dumps(remove_overrides(upstream_package_json), indent=2) + "\n"
+        )
         run(["npm", "install", "--package-lock-only", "--ignore-scripts"], cwd=lock_dir)
         shutil.copyfile(lock_dir / "package-lock.json", package_lock_path)
 
     text = set_version(read(package_path), latest)
-    text = re.sub(
-        r'(url = "https://registry\.npmjs\.org/t3/-/t3-\$\{finalAttrs\.version\}\.tgz";\n\s*hash = )"[^"]+";',
-        rf'\1"{integrity}";',
+    text, replacements = re.subn(
+        r'\bsrcHash = "[^"]+";',
+        f'srcHash = "{integrity}";',
         text,
         count=1,
     )
+    if replacements != 1:
+        raise RuntimeError(f"Could not update source hash for {name}")
     write(package_path, text)
-    return True, f"t3code: {current} -> {latest}"
+    return True, f"{name}: {current} -> {latest}"
+
+
+def update_t3code() -> tuple[bool, str | None]:
+    return update_t3code_channel("t3code", "latest", "t3code")
+
+
+def update_t3code_nightly() -> tuple[bool, str | None]:
+    return update_t3code_channel("t3code-nightly", "nightly", "t3code-nightly")
 
 
 def main() -> int:
     changed: list[str] = []
-    for updater in (update_t3code, update_firecrawl_cli, update_orca):
+    for updater in (
+        update_t3code,
+        update_t3code_nightly,
+        update_firecrawl_cli,
+        update_orca,
+    ):
         did_change, message = updater()
         if did_change and message:
             changed.append(message)
@@ -229,7 +278,16 @@ def main() -> int:
             handle.write("\n".join(changed))
             handle.write("\nEOF\n")
 
-    print(json.dumps({"needs_update": needs_update, "commit_message": commit_message, "changed_packages": changed}, indent=2))
+    print(
+        json.dumps(
+            {
+                "needs_update": needs_update,
+                "commit_message": commit_message,
+                "changed_packages": changed,
+            },
+            indent=2,
+        )
+    )
     return 0
 
 
