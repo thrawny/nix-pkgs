@@ -14,17 +14,17 @@
 
 let
   pname = "orca";
-  version = "1.4.193";
+  version = "1.4.194";
 
   platform =
     {
       x86_64-linux = {
         asset = "orca-linux.AppImage";
-        hash = "sha256-P4Fv8i+cM/nEoeUSzIgoXAEu6/bKqujOvr3ft56QCFU=";
+        hash = "sha256-HH91Nhx0PQ1NVhiCi3Tkh3340jrf3Dnrl9RxFzMzkWw=";
       };
       aarch64-linux = {
         asset = "orca-linux-arm64.AppImage";
-        hash = "sha256-/yw7e2UcTH2I3w38iNLVIMuo4OgUsiMGa294tFvejks=";
+        hash = "sha256-vmDEErgoY5Lw+phTcJmhcuzU5mlxu71lcZXgkjmvgao=";
       };
     }
     .${stdenv.hostPlatform.system};
