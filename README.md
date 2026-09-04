@@ -4,7 +4,7 @@ Personal Nix package set for small or finicky packages that do not belong in dot
 
 ## Packages
 
-- `acpx` - Headless ACP client, wrapped to use the Codex CLI found on `PATH` by default.
+- `acpx` - Headless ACP client with a compatible Claude adapter, wrapped to use the Codex and Claude Code CLIs found on `PATH` by default.
 - `t3code` / `t3` - Stable T3 Code CLI/server from the published npm artifact.
 - `t3code-nightly` / `t3-nightly` - T3 Code CLI/server following npm's `nightly` tag.
 - `firecrawl-cli` - Firecrawl CLI built from upstream source with pnpm.

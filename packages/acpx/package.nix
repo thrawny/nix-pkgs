@@ -9,13 +9,13 @@
 
 buildNpmPackage (finalAttrs: {
   pname = "acpx";
-  version = "0.12.0";
+  version = "0.13.2";
 
   nodejs = nodejs_24;
 
   src = fetchurl {
     url = "https://registry.npmjs.org/acpx/-/acpx-${finalAttrs.version}.tgz";
-    hash = "sha512-APYpN04XFWrCGuSBvM4HTKWWFH8uSIuzc+qI7aCGeVdP9o4euZeBosFEkmNUHvBOop0XBemg6d8RsNvzXN3Mgw==";
+    hash = "sha512-4hOLEo2kE/nCrPr50StbzU3G1WvzHkmKE/r3vxFAIr6GRI3VSmSRH62XCtnDpVcQNpBM8fVPAeTj39ewVhJwdQ==";
   };
 
   npmDeps = importNpmLock {
@@ -33,16 +33,38 @@ buildNpmPackage (finalAttrs: {
     cp ${./package.json} package.json
     cp ${./package-lock.json} package-lock.json
 
-    # codex-acp 0.0.44 crashes on apply_patch file moves ("Moved to:" diff
-    # lines); the ^0.0.44 pin never floats past 0.0.x, so bump to the fixed
-    # 1.x line. Fails the build if upstream changes or drops the pin.
-    substituteInPlace dist/live-checkpoint-*.js \
-      --replace-fail 'codex: "^0.0.44",' 'codex: "^1.1.4",'
+    # Use the adapter selected by package-lock.json rather than acpx's stale
+    # built-in range. Fail if upstream moves or duplicates the declaration.
+    ${nodejs_24}/bin/node --input-type=module <<'EOF'
+    import fs from "node:fs";
+
+    const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
+    const adapterRange = packageJson.dependencies["@agentclientprotocol/claude-agent-acp"];
+    const bundles = fs
+      .readdirSync("dist")
+      .filter((name) => /^live-checkpoint-.*\.js$/.test(name));
+    if (bundles.length !== 1) {
+      throw new Error(`Expected one live-checkpoint bundle, found ''${bundles.length}`);
+    }
+
+    const bundlePath = `dist/''${bundles[0]}`;
+    const source = fs.readFileSync(bundlePath, "utf8");
+    const declaration = /claude: "\^\d+\.\d+\.\d+"/g;
+    const matches = source.match(declaration) ?? [];
+    if (matches.length !== 1) {
+      throw new Error(`Expected one Claude adapter declaration, found ''${matches.length}`);
+    }
+    fs.writeFileSync(
+      bundlePath,
+      source.replace(declaration, `claude: "''${adapterRange}"`),
+    );
+    EOF
   '';
 
   postFixup = ''
     wrapProgram "$out/bin/acpx" \
-      --run 'if [ -z "''${CODEX_PATH:-}" ]; then codex_path="$(command -v codex || true)"; if [ -n "$codex_path" ]; then export CODEX_PATH="$codex_path"; fi; fi'
+      --run 'if [ -z "''${CODEX_PATH:-}" ]; then codex_path="$(command -v codex || true)"; if [ -n "$codex_path" ]; then export CODEX_PATH="$codex_path"; fi; fi' \
+      --run 'if [ -z "''${CLAUDE_CODE_EXECUTABLE:-}" ]; then claude_path="$(command -v claude || true)"; if [ -n "$claude_path" ]; then export CLAUDE_CODE_EXECUTABLE="$claude_path"; fi; fi'
   '';
 
   meta = {

@@ -110,14 +110,14 @@ def update_firecrawl_cli() -> tuple[bool, str | None]:
         rf'\1"{src_hash}";',
         text,
         count=1,
-        flags=re.S,
+        flags=re.DOTALL,
     )
     text = re.sub(
         r'(pnpmDeps = fetchPnpmDeps \{.*?\n\s*hash = )"[^"]+";',
         r"\1lib.fakeHash;",
         text,
         count=1,
-        flags=re.S,
+        flags=re.DOTALL,
     )
     write(package_path, text)
 
@@ -175,6 +175,139 @@ def remove_overrides(package_json: dict) -> dict:
     cleaned = dict(package_json)
     cleaned.pop("overrides", None)
     return cleaned
+
+
+def semver_tuple(version: str) -> tuple[int, int, int]:
+    match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", version)
+    if not match:
+        raise RuntimeError(f"Unsupported semver: {version}")
+    return tuple(map(int, match.groups()))
+
+
+def update_acpx() -> tuple[bool, str | None]:
+    package_root = ROOT / "packages/acpx"
+    package_path = package_root / "package.nix"
+    package_json_path = package_root / "package.json"
+    package_lock_path = package_root / "package-lock.json"
+
+    current = current_version(package_path)
+    latest = npm_view("acpx", "dist-tags.latest")
+    latest_adapter = npm_view(
+        "@agentclientprotocol/claude-agent-acp", "dist-tags.latest"
+    )
+    current_adapter = None
+    if package_json_path.exists():
+        current_package_json = json.loads(package_json_path.read_text())
+        current_adapter_range = current_package_json.get("dependencies", {}).get(
+            "@agentclientprotocol/claude-agent-acp"
+        )
+        if current_adapter_range:
+            current_adapter = current_adapter_range.removeprefix("^")
+
+    if (
+        current == latest
+        and current_adapter == latest_adapter
+        and package_lock_path.exists()
+    ):
+        print(f"acpx already up to date ({current}, Claude adapter {current_adapter})")
+        return False, None
+
+    integrity = npm_view(f"acpx@{latest}", "dist.integrity")
+    print(
+        f"acpx: {current} -> {latest}; "
+        f"Claude adapter: {current_adapter or 'missing'} -> {latest_adapter}"
+    )
+
+    with tempfile.TemporaryDirectory() as tmpdir_str:
+        tmpdir = Path(tmpdir_str)
+        pack = run(
+            [
+                "npm",
+                "pack",
+                f"acpx@{latest}",
+                "--pack-destination",
+                str(tmpdir),
+                "--silent",
+            ]
+        )
+        tarball = tmpdir / pack.stdout.strip().splitlines()[-1]
+        extract_dir = tmpdir / "extract"
+        extract_dir.mkdir()
+        with tarfile.open(tarball, "r:gz") as archive:
+            archive.extractall(extract_dir, filter="data")
+
+        extracted_package = extract_dir / "package"
+        live_checkpoints = list(
+            (extracted_package / "dist").glob("live-checkpoint-*.js")
+        )
+        if len(live_checkpoints) != 1:
+            raise RuntimeError(
+                f"Expected one acpx live-checkpoint bundle, found {len(live_checkpoints)}"
+            )
+        adapter_match = re.search(
+            r'\bclaude: "\^(\d+\.\d+\.\d+)"', live_checkpoints[0].read_text()
+        )
+        if not adapter_match:
+            raise RuntimeError("Could not find the bundled Claude adapter range")
+        upstream_adapter_version = adapter_match.group(1)
+        adapter_version = max(
+            upstream_adapter_version,
+            latest_adapter,
+            key=semver_tuple,
+        )
+
+        package_json = json.loads((extracted_package / "package.json").read_text())
+        package_json.pop("scripts", None)
+        package_json.pop("devDependencies", None)
+        package_json = remove_overrides(package_json)
+        package_json["dependencies"]["@agentclientprotocol/claude-agent-acp"] = (
+            f"^{adapter_version}"
+        )
+        package_json["dependencies"] = dict(
+            sorted(package_json["dependencies"].items())
+        )
+        package_json_path.write_text(
+            json.dumps(package_json, indent=2, ensure_ascii=False) + "\n"
+        )
+
+        lock_dir = tmpdir / "lock"
+        lock_dir.mkdir()
+        (lock_dir / "package.json").write_text(
+            json.dumps(package_json, indent=2, ensure_ascii=False) + "\n"
+        )
+        run(
+            [
+                "npm",
+                "install",
+                "--package-lock-only",
+                "--ignore-scripts",
+                "--no-audit",
+                "--no-fund",
+            ],
+            cwd=lock_dir,
+        )
+        shutil.copyfile(lock_dir / "package-lock.json", package_lock_path)
+
+    text = set_version(read(package_path), latest)
+    text, replacements = re.subn(
+        r'(src = fetchurl \{.*?\n\s*hash = )"[^"]+";',
+        rf'\1"{integrity}";',
+        text,
+        count=1,
+        flags=re.DOTALL,
+    )
+    if replacements != 1:
+        raise RuntimeError("Could not update acpx source hash")
+    write(package_path, text)
+
+    changes = []
+    if current != latest:
+        changes.append(f"{current} -> {latest}")
+    if current_adapter != adapter_version:
+        changes.append(
+            f"Claude adapter {current_adapter or 'missing'} -> {adapter_version}"
+        )
+    return True, f"acpx: {', '.join(changes)}"
 
 
 def update_t3code_channel(
@@ -250,6 +383,7 @@ def update_t3code_nightly() -> tuple[bool, str | None]:
 def main() -> int:
     changed: list[str] = []
     for updater in (
+        update_acpx,
         update_t3code,
         update_t3code_nightly,
         update_firecrawl_cli,
