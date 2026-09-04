@@ -40,6 +40,9 @@ buildNpmPackage (finalAttrs: {
     };
   };
   npmConfigHook = importNpmLock.npmConfigHook;
+  # Effect prereleases can declare mutually incompatible peer ranges even when
+  # npm has produced a valid lockfile. Do not re-resolve those peers offline.
+  npmFlags = [ "--legacy-peer-deps" ];
 
   # The published npm package already contains dist/.
   dontNpmBuild = true;
