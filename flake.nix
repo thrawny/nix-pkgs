@@ -34,9 +34,6 @@
           t3-nightly = t3code-nightly;
           default = t3code;
         }
-        // nixpkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
-          orca = pkgs.callPackage ./packages/orca/package.nix { };
-        }
         // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
           t3code-desktop = pkgs.callPackage ./packages/t3code-desktop/package.nix { };
         }
@@ -52,9 +49,6 @@
           t3code-nightly = final.callPackage ./packages/t3code-nightly/package.nix { };
           t3 = final.t3code;
           t3-nightly = final.t3code-nightly;
-        }
-        // final.lib.optionalAttrs final.stdenv.hostPlatform.isLinux {
-          orca = final.callPackage ./packages/orca/package.nix { };
         }
         // final.lib.optionalAttrs (final.stdenv.hostPlatform.system == "x86_64-linux") {
           t3code-desktop = final.callPackage ./packages/t3code-desktop/package.nix { };
