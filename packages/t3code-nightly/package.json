@@ -9,7 +9,7 @@
     "t3": "./dist/bin.mjs"
   },
   "type": "module",
-  "version": "0.0.39-nightly.20260906.1303",
+  "version": "0.0.40-nightly.20260907.1346",
   "engines": {
     "node": "^22.16 || ^23.11 || >=24.10"
   },
@@ -26,6 +26,8 @@
     "effect": "4.0.0-beta.103",
     "msgpackr-extract": "3.0.4",
     "node-pty": "^1.1.0",
+    "stream-chain": "^4.2.5",
+    "stream-json": "3.6.0",
     "yaml": "^2.9.0",
     "yauzl": "^3.4.0"
   },
