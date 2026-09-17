@@ -48,6 +48,9 @@ buildNpmPackage (finalAttrs: {
   dontNpmBuild = true;
 
   postPatch = ''
+    # npm omits this directory for releases with no external dependencies,
+    # but the Nix npm hooks expect it during installation.
+    mkdir -p node_modules
     cp ${packageJsonFile} package.json
     cp ${packageLockFile} package-lock.json
     node -e '
