@@ -40,20 +40,19 @@ buildNpmPackage (finalAttrs: {
 
     const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
     const adapterRange = packageJson.dependencies["@agentclientprotocol/claude-agent-acp"];
-    const bundles = fs
-      .readdirSync("dist")
-      .filter((name) => /^live-checkpoint-.*\.js$/.test(name));
-    if (bundles.length !== 1) {
-      throw new Error(`Expected one live-checkpoint bundle, found ''${bundles.length}`);
-    }
-
-    const bundlePath = `dist/''${bundles[0]}`;
-    const source = fs.readFileSync(bundlePath, "utf8");
-    const declaration = /claude: "\^\d+\.\d+\.\d+"/g;
-    const matches = source.match(declaration) ?? [];
+    const declaration = /\bclaude: "\^\d+\.\d+\.\d+"/g;
+    const matches = fs
+      .readdirSync("dist", { recursive: true })
+      .filter((name) => name.endsWith(".js"))
+      .flatMap((name) => {
+        const bundlePath = `dist/''${name}`;
+        const source = fs.readFileSync(bundlePath, "utf8");
+        return [...source.matchAll(declaration)].map(() => ({ bundlePath, source }));
+      });
     if (matches.length !== 1) {
       throw new Error(`Expected one Claude adapter declaration, found ''${matches.length}`);
     }
+    const { bundlePath, source } = matches[0];
     fs.writeFileSync(
       bundlePath,
       source.replace(declaration, `claude: "''${adapterRange}"`),

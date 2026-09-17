@@ -179,19 +179,19 @@ def update_acpx() -> tuple[bool, str | None]:
             archive.extractall(extract_dir, filter="data")
 
         extracted_package = extract_dir / "package"
-        live_checkpoints = list(
-            (extracted_package / "dist").glob("live-checkpoint-*.js")
-        )
-        if len(live_checkpoints) != 1:
-            raise RuntimeError(
-                f"Expected one acpx live-checkpoint bundle, found {len(live_checkpoints)}"
+        adapter_versions = [
+            match.group(1)
+            for bundle in (extracted_package / "dist").rglob("*.js")
+            for match in re.finditer(
+                r'\bclaude: "\^(\d+\.\d+\.\d+)"', bundle.read_text()
             )
-        adapter_match = re.search(
-            r'\bclaude: "\^(\d+\.\d+\.\d+)"', live_checkpoints[0].read_text()
-        )
-        if not adapter_match:
-            raise RuntimeError("Could not find the bundled Claude adapter range")
-        upstream_adapter_version = adapter_match.group(1)
+        ]
+        if len(adapter_versions) != 1:
+            raise RuntimeError(
+                "Expected one bundled Claude adapter declaration, "
+                f"found {len(adapter_versions)}"
+            )
+        upstream_adapter_version = adapter_versions[0]
         adapter_version = max(
             upstream_adapter_version,
             latest_adapter,
