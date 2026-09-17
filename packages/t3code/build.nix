@@ -1,5 +1,6 @@
 {
   lib,
+  callPackage,
   buildNpmPackage,
   fetchurl,
   importNpmLock,
@@ -19,54 +20,59 @@ let
   packageJsonForNpm = builtins.removeAttrs packageJson [ "overrides" ];
   packageLockJson = lib.importJSON packageLockFile;
 in
-buildNpmPackage (finalAttrs: {
-  inherit pname version;
+if
+  packageJson ? optionalDependencies
+  && lib.any (name: lib.hasPrefix "@t3code/t3-" name) (
+    builtins.attrNames packageJson.optionalDependencies
+  )
+then
+  callPackage ./native.nix { inherit pname version packageLockJson; }
+else
+  buildNpmPackage (finalAttrs: {
+    inherit pname version;
 
-  nodejs = nodejs_24;
+    nodejs = nodejs_24;
 
-  src = fetchurl {
-    url = "https://registry.npmjs.org/t3/-/t3-${finalAttrs.version}.tgz";
-    hash = srcHash;
-  };
-
-  npmDeps = importNpmLock {
-    package = packageJsonForNpm;
-    packageLock = packageLockJson;
-    fetcherOpts = {
-      "node_modules/@effect/platform-node".name = "platform-node.tgz";
-      "node_modules/@effect/platform-node-shared".name = "platform-node-shared.tgz";
-      "node_modules/@effect/sql-sqlite-bun".name = "sql-sqlite-bun.tgz";
-      "node_modules/effect".name = "effect.tgz";
+    src = fetchurl {
+      url = "https://registry.npmjs.org/t3/-/t3-${finalAttrs.version}.tgz";
+      hash = srcHash;
     };
-  };
-  npmConfigHook = importNpmLock.npmConfigHook;
-  # Effect prereleases can declare mutually incompatible peer ranges even when
-  # npm has produced a valid lockfile. Do not re-resolve those peers offline.
-  npmFlags = [ "--legacy-peer-deps" ];
 
-  # The published npm package already contains dist/.
-  dontNpmBuild = true;
+    npmDeps = importNpmLock {
+      package = packageJsonForNpm;
+      packageLock = packageLockJson;
+      fetcherOpts = {
+        "node_modules/@effect/platform-node".name = "platform-node.tgz";
+        "node_modules/@effect/platform-node-shared".name = "platform-node-shared.tgz";
+        "node_modules/@effect/sql-sqlite-bun".name = "sql-sqlite-bun.tgz";
+        "node_modules/effect".name = "effect.tgz";
+      };
+    };
+    npmConfigHook = importNpmLock.npmConfigHook;
+    # Effect prereleases can declare mutually incompatible peer ranges even when
+    # npm has produced a valid lockfile. Do not re-resolve those peers offline.
+    npmFlags = [ "--legacy-peer-deps" ];
 
-  postPatch = ''
-    # npm omits this directory for releases with no external dependencies,
-    # but the Nix npm hooks expect it during installation.
-    mkdir -p node_modules
-    cp ${packageJsonFile} package.json
-    cp ${packageLockFile} package-lock.json
-    node -e '
-      const fs = require("fs");
-      const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
-      delete pkg.overrides;
-      fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
-    '
-  '';
+    # The published npm package already contains dist/.
+    dontNpmBuild = true;
 
-  meta = {
-    description = "T3 Code CLI/server";
-    homepage = "https://github.com/pingdotgg/t3code";
-    license = lib.licenses.mit;
-    mainProgram = "t3";
-    platforms = lib.platforms.unix;
-    sourceProvenance = with lib.sourceTypes; [ binaryBytecode ];
-  };
-})
+    postPatch = ''
+      cp ${packageJsonFile} package.json
+      cp ${packageLockFile} package-lock.json
+      node -e '
+        const fs = require("fs");
+        const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+        delete pkg.overrides;
+        fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
+      '
+    '';
+
+    meta = {
+      description = "T3 Code CLI/server";
+      homepage = "https://github.com/pingdotgg/t3code";
+      license = lib.licenses.mit;
+      mainProgram = "t3";
+      platforms = lib.platforms.unix;
+      sourceProvenance = with lib.sourceTypes; [ binaryBytecode ];
+    };
+  })
