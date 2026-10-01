@@ -1,6 +1,6 @@
 {
   "name": "acpx",
-  "version": "0.19.3",
+  "version": "0.19.4",
   "description": "Headless CLI client for the Agent Client Protocol (ACP) — talk to coding agents from the command line",
   "keywords": [
     "acp",
@@ -36,9 +36,9 @@
     "./agent-registry": "./dist/agent-registry.js"
   },
   "dependencies": {
-    "@agentclientprotocol/claude-agent-acp": "^0.84.0",
+    "@agentclientprotocol/claude-agent-acp": "^0.85.0",
     "@agentclientprotocol/sdk": "^1.5.0",
-    "@openclaw/fs-safe": "^0.18.1",
+    "@openclaw/fs-safe": "^0.21.1",
     "commander": "^15.0.0",
     "skillflag": "^0.2.1",
     "tsx": "^4.23.15",
@@ -46,11 +46,11 @@
   },
   "lint-staged": {
     "*.{js,ts}": [
-      "oxfmt --write",
-      "oxlint --fix"
+      "oxfmt --write --no-error-on-unmatched-pattern",
+      "oxlint --fix --no-error-on-unmatched-pattern"
     ],
     "*.{json,md}": [
-      "oxfmt --write"
+      "oxfmt --write --no-error-on-unmatched-pattern"
     ]
   },
   "engines": {
