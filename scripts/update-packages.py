@@ -314,6 +314,28 @@ def update_t3code_channel(
     return True, f"{name}: {current} -> {latest}"
 
 
+def update_portless() -> tuple[bool, str | None]:
+    package_path = ROOT / "packages/portless/package.nix"
+    current = current_version(package_path)
+    latest = npm_view("portless", "dist-tags.latest")
+    if current == latest:
+        print(f"portless already up to date ({current})")
+        return False, None
+    integrity = npm_view(f"portless@{latest}", "dist.integrity")
+    text = set_version(read(package_path), latest)
+    text, replacements = re.subn(
+        r'(src = fetchurl \{.*?\n\s*hash = )"[^"]+";',
+        rf'\1"{integrity}";',
+        text,
+        count=1,
+        flags=re.DOTALL,
+    )
+    if replacements != 1:
+        raise RuntimeError("Could not update portless source hash")
+    write(package_path, text)
+    return True, f"portless: {current} -> {latest}"
+
+
 def update_t3code() -> tuple[bool, str | None]:
     return update_t3code_channel("t3code", "latest", "t3code")
 
@@ -329,6 +351,7 @@ def main() -> int:
         update_t3code,
         update_t3code_nightly,
         update_firecrawl_cli,
+        update_portless,
     ):
         did_change, message = updater()
         if did_change and message:

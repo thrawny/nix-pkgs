@@ -9,6 +9,7 @@ Personal Nix package set for small or finicky packages that do not belong in dot
 - `t3code-nightly` / `t3-nightly` - T3 Code CLI/server following npm's `nightly` tag.
 - `firecrawl-cli` - Firecrawl CLI built from upstream source with pnpm.
 - `posthog-cli` - PostHog CLI from the official release binaries.
+- `portless` - Named development URLs with optional Tailscale sharing, using Node 24.
 
 ## Usage
 

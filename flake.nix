@@ -27,6 +27,7 @@
           acpx = pkgs.callPackage ./packages/acpx/package.nix { };
           firecrawl-cli = pkgs.callPackage ./packages/firecrawl-cli/package.nix { };
           posthog-cli = pkgs.callPackage ./packages/posthog-cli/package.nix { };
+          portless = pkgs.callPackage ./packages/portless/package.nix { };
           t3code = pkgs.callPackage ./packages/t3code/package.nix { };
           t3code-nightly = pkgs.callPackage ./packages/t3code-nightly/package.nix { };
 
@@ -45,6 +46,7 @@
           acpx = final.callPackage ./packages/acpx/package.nix { };
           firecrawl-cli = final.callPackage ./packages/firecrawl-cli/package.nix { };
           posthog-cli = final.callPackage ./packages/posthog-cli/package.nix { };
+          portless = final.callPackage ./packages/portless/package.nix { };
           t3code = final.callPackage ./packages/t3code/package.nix { };
           t3code-nightly = final.callPackage ./packages/t3code-nightly/package.nix { };
           t3 = final.t3code;
