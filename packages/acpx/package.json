@@ -1,6 +1,6 @@
 {
   "name": "acpx",
-  "version": "0.19.4",
+  "version": "0.19.5",
   "description": "Headless CLI client for the Agent Client Protocol (ACP) — talk to coding agents from the command line",
   "keywords": [
     "acp",
@@ -38,7 +38,7 @@
   "dependencies": {
     "@agentclientprotocol/claude-agent-acp": "^0.89.1",
     "@agentclientprotocol/sdk": "^1.5.0",
-    "@openclaw/fs-safe": "^0.21.1",
+    "@openclaw/fs-safe": "^0.22.0",
     "commander": "^15.0.0",
     "skillflag": "^0.2.1",
     "tsx": "^4.23.15",
