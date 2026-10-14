@@ -14,13 +14,13 @@
 
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "portless";
-  version = "0.15.7";
+  version = "0.15.8";
 
   # Published JavaScript bundles all runtime dependencies. No npm installation
   # or lifecycle scripts are needed.
   src = fetchurl {
     url = "https://registry.npmjs.org/portless/-/portless-${finalAttrs.version}.tgz";
-    hash = "sha512-fffMnzfwU/0chJmOMmeAOjFouRsZUmdJagxdqE4DATLw83ssAnHX4BzvNqOI5vBgsuvWLX5ZLg63bzs7zdVFNw==";
+    hash = "sha512-kzGoG4xLsEytczl7O/COZaBwSAOKsWsZDxHv7/iFHKIC0X71OonpgbsQw58CGO29RklIHIx6yLM31TJMnTtPEw==";
   };
 
   nativeBuildInputs = [ makeWrapper ];
