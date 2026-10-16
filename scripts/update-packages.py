@@ -8,6 +8,7 @@ like main.
 
 from __future__ import annotations
 
+import base64
 import json
 import os
 import re
@@ -16,6 +17,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -259,11 +261,21 @@ def update_t3code_channel(
     package_path = package_root / "package.nix"
     package_json_path = package_root / "package.json"
     package_lock_path = package_root / "package-lock.json"
+    release_sources_path = package_root / "release-sources.json"
 
     current = current_version(package_path)
     latest = npm_view("t3", f"dist-tags.{dist_tag}")
 
-    if current == latest and package_json_path.exists() and package_lock_path.exists():
+    if (
+        current == latest
+        and package_json_path.exists()
+        and package_lock_path.exists()
+        and (
+            json.loads(package_json_path.read_text()).get("bin", {}).get("t3")
+            != "./bin/t3.mjs"
+            or release_sources_path.exists()
+        )
+    ):
         print(f"{name} already up to date ({current})")
         return False, None
 
@@ -291,6 +303,11 @@ def update_t3code_channel(
         upstream_package_json = json.loads(
             (extract_dir / "package/package.json").read_text()
         )
+        if upstream_package_json.get("bin", {}).get("t3") == "./bin/t3.mjs":
+            release_sources = t3code_release_sources(latest)
+            release_sources_path.write_text(json.dumps(release_sources, indent=2) + "\n")
+        else:
+            release_sources_path.unlink(missing_ok=True)
         package_json_path.write_text(json.dumps(upstream_package_json, indent=2) + "\n")
 
         lock_dir = tmpdir / "lock"
@@ -310,8 +327,38 @@ def update_t3code_channel(
     )
     if replacements != 1:
         raise RuntimeError(f"Could not update source hash for {name}")
+    text = re.sub(r"^  releaseSourcesFile = .*;\n", "", text, flags=re.MULTILINE)
+    if release_sources_path.exists():
+        text = text.replace(
+            "  packageJsonFile =",
+            "  releaseSourcesFile = ./release-sources.json;\n  packageJsonFile =",
+            1,
+        )
     write(package_path, text)
     return True, f"{name}: {current} -> {latest}"
+
+
+def t3code_release_sources(version: str) -> dict:
+    base_url = f"https://github.com/pingdotgg/t3code/releases/download/v{version}"
+    with urllib.request.urlopen(f"{base_url}/SHA256SUMS", timeout=60) as response:
+        checksums = response.read().decode("utf-8")
+    hashes = {
+        match.group(2): match.group(1)
+        for match in re.finditer(
+            r"^([0-9a-fA-F]{64})\s+\*?(\S+)\r?$", checksums, re.MULTILINE
+        )
+    }
+    sources = {}
+    for platform in ("linux-x64", "linux-arm64", "darwin-arm64"):
+        archive = f"t3-{version}-{platform}.tar.gz"
+        if archive not in hashes:
+            raise RuntimeError(f"Missing T3 release checksum for {archive}")
+        sources[platform] = {
+            "resolved": f"{base_url}/{archive}",
+            "integrity": "sha256-"
+            + base64.b64encode(bytes.fromhex(hashes[archive])).decode("ascii"),
+        }
+    return sources
 
 
 def update_portless() -> tuple[bool, str | None]:

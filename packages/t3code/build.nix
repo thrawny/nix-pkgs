@@ -10,6 +10,7 @@
   srcHash,
   packageJsonFile,
   packageLockFile,
+  releaseSourcesFile ? null,
 }:
 
 let
@@ -21,12 +22,17 @@ let
   packageLockJson = lib.importJSON packageLockFile;
 in
 if
-  packageJson ? optionalDependencies
-  && lib.any (name: lib.hasPrefix "@t3code/t3-" name) (
-    builtins.attrNames packageJson.optionalDependencies
-  )
+  releaseSourcesFile != null
+  ||
+    packageJson ? optionalDependencies
+    && lib.any (name: lib.hasPrefix "@t3code/t3-" name) (
+      builtins.attrNames packageJson.optionalDependencies
+    )
 then
-  callPackage ./native.nix { inherit pname version packageLockJson; }
+  callPackage ./native.nix {
+    inherit pname version packageLockJson;
+    releaseSources = if releaseSourcesFile == null then null else lib.importJSON releaseSourcesFile;
+  }
 else
   buildNpmPackage (finalAttrs: {
     inherit pname version;

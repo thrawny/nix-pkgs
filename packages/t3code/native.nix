@@ -7,6 +7,7 @@
   pname,
   version,
   packageLockJson,
+  releaseSources ? null,
 }:
 let
   platforms = {
@@ -17,7 +18,11 @@ let
   platform =
     platforms.${stdenv.hostPlatform.system}
       or (throw "T3 Code does not publish a native executable for ${stdenv.hostPlatform.system}");
-  locked = packageLockJson.packages."node_modules/@t3code/t3-${platform}";
+  locked =
+    if releaseSources != null then
+      releaseSources.${platform}
+    else
+      packageLockJson.packages."node_modules/@t3code/t3-${platform}";
 in
 stdenvNoCC.mkDerivation {
   inherit pname version;

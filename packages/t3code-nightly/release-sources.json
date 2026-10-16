@@ -1,0 +1,14 @@
+{
+  "linux-x64": {
+    "resolved": "https://github.com/pingdotgg/t3code/releases/download/v0.1.1-nightly.20261016.3218/t3-0.1.1-nightly.20261016.3218-linux-x64.tar.gz",
+    "integrity": "sha256-IDGiOmmU4JE442qTpojKkTHV6o+4LTs+61CigXvICFA="
+  },
+  "linux-arm64": {
+    "resolved": "https://github.com/pingdotgg/t3code/releases/download/v0.1.1-nightly.20261016.3218/t3-0.1.1-nightly.20261016.3218-linux-arm64.tar.gz",
+    "integrity": "sha256-1+R4crWBIgmuJ6J1gJRMnqrSXRbDlT9SLmg9326AMY8="
+  },
+  "darwin-arm64": {
+    "resolved": "https://github.com/pingdotgg/t3code/releases/download/v0.1.1-nightly.20261016.3218/t3-0.1.1-nightly.20261016.3218-darwin-arm64.tar.gz",
+    "integrity": "sha256-f2gWjvScrSiF2X6yGObNsiOiErQpwyaz0AHMD2t2CpI="
+  }
+}
