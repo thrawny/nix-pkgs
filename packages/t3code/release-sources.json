@@ -1,0 +1,14 @@
+{
+  "linux-x64": {
+    "resolved": "https://github.com/pingdotgg/t3code/releases/download/v0.1.1/t3-0.1.1-linux-x64.tar.gz",
+    "integrity": "sha256-M8Q+ovgDIVZi9aMf354byoarZ8rE8jmFZcK6EuF8IYU="
+  },
+  "linux-arm64": {
+    "resolved": "https://github.com/pingdotgg/t3code/releases/download/v0.1.1/t3-0.1.1-linux-arm64.tar.gz",
+    "integrity": "sha256-ojcpV0vsJmXVPP5nmX7b9fKd1ZLDt8PndK7D38XH4hc="
+  },
+  "darwin-arm64": {
+    "resolved": "https://github.com/pingdotgg/t3code/releases/download/v0.1.1/t3-0.1.1-darwin-arm64.tar.gz",
+    "integrity": "sha256-j19DVIMmbB5vRrNTNv6hNONkEABFqHEstS9BuI47CwU="
+  }
+}
