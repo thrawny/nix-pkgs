@@ -4,6 +4,7 @@
   stdenvNoCC,
   fetchurl,
   autoPatchelfHook,
+  patchelf,
   pname,
   version,
   packageLockJson,
@@ -23,6 +24,17 @@ let
       releaseSources.${platform}
     else
       packageLockJson.packages."node_modules/@t3code/t3-${platform}";
+  # patchelf 0.19.2 creates overlapping LOAD mappings when it grows this
+  # executable's RPATH, making .dynamic read-only and crashing the loader.
+  # Pin the known-good patcher even when consumers override our nixpkgs input.
+  compatiblePatchelf = patchelf.overrideAttrs {
+    version = "0.15.2";
+    src = fetchurl {
+      url = "https://github.com/NixOS/patchelf/releases/download/0.15.2/patchelf-0.15.2.tar.bz2";
+      hash = "sha256-F3RfVkFZyOIo/EEtplogSLhGxLa0Igt3y/IkFuAvLXw=";
+    };
+    patches = [ ];
+  };
 in
 stdenvNoCC.mkDerivation {
   inherit pname version;
@@ -32,8 +44,11 @@ stdenvNoCC.mkDerivation {
     hash = locked.integrity;
   };
 
-  nativeBuildInputs = lib.optionals stdenv.isLinux [ autoPatchelfHook ];
-  buildInputs = lib.optionals stdenv.isLinux [ stdenv.cc.cc.lib ];
+  nativeBuildInputs = lib.optionals stdenv.hostPlatform.isLinux [
+    compatiblePatchelf
+    autoPatchelfHook
+  ];
+  buildInputs = lib.optionals stdenv.hostPlatform.isLinux [ stdenv.cc.cc.lib ];
   dontBuild = true;
   dontStrip = true;
 
@@ -47,9 +62,17 @@ stdenvNoCC.mkDerivation {
   '';
 
   # Nix Linux uses glibc. The npm tarball also bundles musl-only alternatives.
-  preFixup = lib.optionalString stdenv.isLinux ''
+  preFixup = lib.optionalString stdenv.hostPlatform.isLinux ''
     find "$out/lib/t3code/node_modules" -type f -name '*.musl.node' -delete
     rm -rf "$out/lib/t3code/node_modules/@ff-labs/fff-bin-linux-"*-musl
+  '';
+
+  # Run the installed, fully patched executable, not just a build-time tool.
+  doInstallCheck = stdenv.buildPlatform.canExecute stdenv.hostPlatform;
+  installCheckPhase = ''
+    runHook preInstallCheck
+    "$out/bin/t3" --version
+    runHook postInstallCheck
   '';
 
   meta = {

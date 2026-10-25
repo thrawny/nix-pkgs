@@ -64,6 +64,10 @@ jobs:
           path: packages
 
   build-linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        nixpkgs: [locked, unstable]
     needs: prepare
     if: needs.prepare.outputs.needs_build == 'true'
     runs-on: ubuntu-latest
@@ -89,10 +93,16 @@ jobs:
           name: thrawny
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
-      - name: Build and push Linux packages
+      # Consumers such as dotfiles override our older nixpkgs pin. Exercise
+      # current patching tools too, without committing this CI-only lock update.
+      - name: Use current nixpkgs
+        if: matrix.nixpkgs == 'unstable'
+        run: nix flake update nixpkgs
+
+      - name: Build Linux packages
         run: |
           set -euo pipefail
-          nix build .#acpx .#firecrawl-cli .#posthog-cli .#t3code .#t3code-nightly --print-out-paths | cachix push thrawny
+          nix build .#acpx .#firecrawl-cli .#posthog-cli .#t3code .#t3code-nightly --print-out-paths > "$RUNNER_TEMP/linux-package-paths"
 
       - name: Smoke test Linux packages
         run: |
@@ -102,6 +112,9 @@ jobs:
           nix run .#posthog-cli -- --version
           nix run .#t3code -- --version
           nix run .#t3code-nightly -- --version
+
+      - name: Push smoke-tested Linux packages
+        run: cachix push thrawny < "$RUNNER_TEMP/linux-package-paths"
 
   commit-update:
     needs:
