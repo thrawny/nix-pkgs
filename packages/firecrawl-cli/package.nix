@@ -11,20 +11,20 @@
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "firecrawl-cli";
-  version = "1.26.22";
+  version = "1.26.24";
 
   src = fetchFromGitHub {
     owner = "firecrawl";
     repo = "cli";
     rev = "v${finalAttrs.version}";
-    hash = "sha256-0XLQgPWTeS3M0SeXzqH5doAms4hh7JwbcJuw3Qio1vk=";
+    hash = "sha256-CYJP1U0UC+L1MQLZrTbeIzXioHwyKZKj9Bw0ZOILbL0=";
   };
 
   pnpmDeps = fetchPnpmDeps {
     inherit (finalAttrs) pname version src;
     pnpm = pnpm_10;
     fetcherVersion = 4;
-    hash = "sha256-95GMI9brp0n+jDY0zBaCIJT1fJ32Oj0yttvdt+1egRs=";
+    hash = "sha256-AZnx+IiIQEAnicoSSzFV0ssfSSmhSRT3Kr7W3ye6NTE=";
   };
 
   nativeBuildInputs = [
