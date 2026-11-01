@@ -46,13 +46,15 @@ class T3ReleaseTests(unittest.TestCase):
             )
 
     def test_missing_platform_checksum_rejects_release(self):
-        with patch.object(
-            updater.urllib.request,
-            "urlopen",
-            return_value=io.BytesIO(self.checksums(("linux-x64",))),
+        with (
+            patch.object(
+                updater.urllib.request,
+                "urlopen",
+                return_value=io.BytesIO(self.checksums(("linux-x64",))),
+            ),
+            self.assertRaisesRegex(RuntimeError, "Missing T3 release checksum"),
         ):
-            with self.assertRaisesRegex(RuntimeError, "Missing T3 release checksum"):
-                updater.t3code_release_sources(self.version)
+            updater.t3code_release_sources(self.version)
 
     def test_updater_repairs_same_version_without_release_sources(self):
         manifest = {
@@ -69,7 +71,7 @@ class T3ReleaseTests(unittest.TestCase):
             (package / "package.nix").write_text(
                 f'  version = "{self.version}";\n'
                 '  srcHash = "old";\n'
-                '  packageJsonFile = ./package.json;\n'
+                "  packageJsonFile = ./package.json;\n"
             )
 
             def run(cmd, **kwargs):
@@ -112,6 +114,110 @@ class T3ReleaseTests(unittest.TestCase):
             ):
                 self.assertEqual(updater.update_t3code_nightly(), (False, None))
                 run_again.assert_not_called()
+
+
+class T3DesktopNightlyTests(unittest.TestCase):
+    version = "0.1.7-nightly.20261101.4035"
+
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        root_patch = patch.object(updater, "ROOT", self.root)
+        root_patch.start()
+        self.addCleanup(root_patch.stop)
+        self.server = self.root / "packages/t3code-nightly/package.nix"
+        self.desktop = self.root / "packages/t3code-desktop-nightly/package.nix"
+        self.server.parent.mkdir(parents=True)
+        self.desktop.parent.mkdir(parents=True)
+        self.server.write_text(f'  version = "{self.version}";\n')
+        self.desktop.write_text(
+            '  version = "old";\n  src = fetchurl {\n    hash = "old-hash";\n  };\n'
+        )
+        self.asset_name = f"T3-Code-{self.version}-x86_64.AppImage"
+        self.asset = {
+            "name": self.asset_name,
+            "browser_download_url": (
+                f"https://github.com/pingdotgg/t3code/releases/download/v{self.version}/"
+                f"{self.asset_name}"
+            ),
+            "digest": "sha256:" + "ab" * 32,
+        }
+
+    def release_response(self, assets):
+        return io.BytesIO(json.dumps({"assets": assets}).encode())
+
+    def test_desktop_tracks_pinned_server_without_querying_npm(self):
+        with (
+            patch.object(
+                updater.urllib.request,
+                "urlopen",
+                return_value=self.release_response([self.asset]),
+            ) as request,
+            patch.object(updater, "npm_view") as npm,
+        ):
+            changed, message = updater.update_t3code_desktop_nightly()
+        self.assertTrue(changed)
+        self.assertIn(self.version, message)
+        npm.assert_not_called()
+        request.assert_called_once_with(
+            f"https://api.github.com/repos/pingdotgg/t3code/releases/tags/v{self.version}",
+            timeout=60,
+        )
+        self.assertEqual(updater.current_version(self.desktop), self.version)
+        integrity = "sha256-" + base64.b64encode(bytes.fromhex("ab" * 32)).decode()
+        self.assertIn(f'hash = "{integrity}";', self.desktop.read_text())
+        with patch.object(updater.urllib.request, "urlopen") as request:
+            self.assertEqual(updater.update_t3code_desktop_nightly(), (False, None))
+            request.assert_not_called()
+
+    def test_missing_or_unverifiable_asset_does_not_change_desktop(self):
+        original = self.desktop.read_text()
+        for assets in (
+            [],
+            [self.asset | {"digest": None}],
+            [self.asset | {"digest": "sha256:bad"}],
+            [self.asset | {"name": "stable.AppImage"}],
+            [self.asset | {"browser_download_url": "https://example.com/wrong"}],
+            [self.asset, self.asset],
+        ):
+            with self.subTest(assets=assets):
+                with (
+                    patch.object(
+                        updater.urllib.request,
+                        "urlopen",
+                        return_value=self.release_response(assets),
+                    ),
+                    self.assertRaisesRegex(RuntimeError, "Missing T3 desktop"),
+                ):
+                    updater.update_t3code_desktop_nightly()
+                self.assertEqual(self.desktop.read_text(), original)
+
+    def test_main_updates_server_before_desktop(self):
+        calls = []
+        with (
+            patch.object(updater, "update_acpx", return_value=(False, None)),
+            patch.object(updater, "update_t3code", return_value=(False, None)),
+            patch.object(
+                updater,
+                "update_t3code_nightly",
+                side_effect=lambda: (calls.append("server") or True, "server updated"),
+            ),
+            patch.object(
+                updater,
+                "update_t3code_desktop_nightly",
+                side_effect=lambda: (
+                    calls.append("desktop") or True,
+                    "desktop updated",
+                ),
+            ),
+            patch.object(updater, "update_firecrawl_cli", return_value=(False, None)),
+            patch.object(updater, "update_portless", return_value=(False, None)),
+            patch.dict(updater.os.environ, {}, clear=True),
+            patch("sys.stdout", new_callable=io.StringIO),
+        ):
+            self.assertEqual(updater.main(), 0)
+        self.assertEqual(calls, ["server", "desktop"])
 
 
 if __name__ == "__main__":

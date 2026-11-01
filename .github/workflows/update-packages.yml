@@ -9,6 +9,7 @@ on:
       - "flake.lock"
       - "flake.nix"
       - "packages/**"
+      - "scripts/**"
   schedule:
     - cron: "0 12 * * *" # Daily at noon UTC
   workflow_dispatch:
@@ -36,6 +37,9 @@ jobs:
 
       - name: Install Nix
         uses: cachix/install-nix-action@v31.10.6
+
+      - name: Test updater
+        run: nix develop -c python3 -m unittest discover -s scripts -p 'test_*.py'
 
       - name: Check package releases
         id: update
@@ -102,7 +106,7 @@ jobs:
       - name: Build Linux packages
         run: |
           set -euo pipefail
-          nix build .#acpx .#firecrawl-cli .#posthog-cli .#t3code .#t3code-nightly --print-out-paths > "$RUNNER_TEMP/linux-package-paths"
+          nix build .#acpx .#firecrawl-cli .#posthog-cli .#t3code .#t3code-nightly .#t3code-desktop-nightly --print-out-paths > "$RUNNER_TEMP/linux-package-paths"
 
       - name: Smoke test Linux packages
         run: |
@@ -112,6 +116,12 @@ jobs:
           nix run .#posthog-cli -- --version
           nix run .#t3code -- --version
           nix run .#t3code-nightly -- --version
+
+      - name: Smoke test nightly desktop
+        run: |
+          set -euo pipefail
+          desktop=$(nix build .#t3code-desktop-nightly --no-link --print-out-paths)
+          nix shell --inputs-from . nixpkgs#python3 nixpkgs#xvfb-run -c python3 scripts/smoke_t3code_desktop.py "$desktop"
 
       - name: Push smoke-tested Linux packages
         run: cachix push thrawny < "$RUNNER_TEMP/linux-package-paths"

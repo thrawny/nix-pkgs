@@ -37,11 +37,12 @@
         }
         // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
           t3code-desktop = pkgs.callPackage ./packages/t3code-desktop/package.nix { };
+          t3code-desktop-nightly = pkgs.callPackage ./packages/t3code-desktop-nightly/package.nix { };
         }
       );
 
       overlays.default =
-        final: _prev:
+        final: prev:
         {
           acpx = final.callPackage ./packages/acpx/package.nix { };
           firecrawl-cli = final.callPackage ./packages/firecrawl-cli/package.nix { };
@@ -52,8 +53,9 @@
           t3 = final.t3code;
           t3-nightly = final.t3code-nightly;
         }
-        // final.lib.optionalAttrs (final.stdenv.hostPlatform.system == "x86_64-linux") {
+        // prev.lib.optionalAttrs (prev.stdenv.hostPlatform.system == "x86_64-linux") {
           t3code-desktop = final.callPackage ./packages/t3code-desktop/package.nix { };
+          t3code-desktop-nightly = final.callPackage ./packages/t3code-desktop-nightly/package.nix { };
         };
 
       devShells = forAllSystems (

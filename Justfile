@@ -25,5 +25,15 @@ check-t3code nixpkgs="":
     nix run "${nix_args[@]}" .#t3code -- --version
     nix run "${nix_args[@]}" .#t3code-nightly -- --version
 
+check-updater:
+    python3 -m unittest discover -s scripts -p 'test_*.py'
+
+# Run outside the Nix build sandbox: bubblewrap needs user namespaces.
+check-t3code-desktop:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    desktop=$(nix build .#t3code-desktop-nightly --no-link --print-out-paths)
+    nix shell --inputs-from . nixpkgs#python3 nixpkgs#xvfb-run -c python3 scripts/smoke_t3code_desktop.py "$desktop"
+
 update:
     nix develop -c scripts/update-packages.py

@@ -305,7 +305,9 @@ def update_t3code_channel(
         )
         if upstream_package_json.get("bin", {}).get("t3") == "./bin/t3.mjs":
             release_sources = t3code_release_sources(latest)
-            release_sources_path.write_text(json.dumps(release_sources, indent=2) + "\n")
+            release_sources_path.write_text(
+                json.dumps(release_sources, indent=2) + "\n"
+            )
         else:
             release_sources_path.unlink(missing_ok=True)
         package_json_path.write_text(json.dumps(upstream_package_json, indent=2) + "\n")
@@ -391,12 +393,59 @@ def update_t3code_nightly() -> tuple[bool, str | None]:
     return update_t3code_channel("t3code-nightly", "nightly", "t3code-nightly")
 
 
+def update_t3code_desktop_nightly() -> tuple[bool, str | None]:
+    package_path = ROOT / "packages/t3code-desktop-nightly/package.nix"
+    current = current_version(package_path)
+    # Follow the server's pinned version, not a second moving nightly lookup.
+    latest = current_version(ROOT / "packages/t3code-nightly/package.nix")
+    if current == latest:
+        print(f"t3code-desktop-nightly already up to date ({current})")
+        return False, None
+
+    asset_name = f"T3-Code-{latest}-x86_64.AppImage"
+    asset_url = (
+        f"https://github.com/pingdotgg/t3code/releases/download/v{latest}/{asset_name}"
+    )
+    with urllib.request.urlopen(
+        f"https://api.github.com/repos/pingdotgg/t3code/releases/tags/v{latest}",
+        timeout=60,
+    ) as response:
+        release = json.load(response)
+    assets = [
+        asset
+        for asset in release["assets"]
+        if asset["name"] == asset_name and asset["browser_download_url"] == asset_url
+    ]
+    if len(assets) != 1 or not re.fullmatch(
+        r"sha256:[0-9a-fA-F]{64}", assets[0].get("digest") or ""
+    ):
+        raise RuntimeError(
+            f"Missing T3 desktop release asset or SHA256 digest: {asset_name}"
+        )
+    integrity = "sha256-" + base64.b64encode(
+        bytes.fromhex(assets[0]["digest"].removeprefix("sha256:"))
+    ).decode("ascii")
+    text = set_version(read(package_path), latest)
+    text, replacements = re.subn(
+        r'(src = fetchurl \{.*?\n\s*hash = )"[^"]+";',
+        rf'\1"{integrity}";',
+        text,
+        count=1,
+        flags=re.DOTALL,
+    )
+    if replacements != 1:
+        raise RuntimeError("Could not update t3code-desktop-nightly source hash")
+    write(package_path, text)
+    return True, f"t3code-desktop-nightly: {current} -> {latest}"
+
+
 def main() -> int:
     changed: list[str] = []
     for updater in (
         update_acpx,
         update_t3code,
         update_t3code_nightly,
+        update_t3code_desktop_nightly,
         update_firecrawl_cli,
         update_portless,
     ):
@@ -412,7 +461,7 @@ def main() -> int:
         commit_message = changed[0]
     else:
         needs_update = "true"
-        commit_message = "packages: update stable releases"
+        commit_message = "packages: update releases"
 
     output = os.environ.get("GITHUB_OUTPUT")
     if output:
