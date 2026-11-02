@@ -61,9 +61,10 @@ stdenvNoCC.mkDerivation {
     runHook postInstall
   '';
 
-  # Nix Linux uses glibc. The npm tarball also bundles musl-only alternatives.
+  # Nix Linux uses glibc. Release archives also bundle musl-only alternatives,
+  # with both .musl.node and -musl.node filename suffixes.
   preFixup = lib.optionalString stdenv.hostPlatform.isLinux ''
-    find "$out/lib/t3code/node_modules" -type f -name '*.musl.node' -delete
+    find "$out/lib/t3code/node_modules" -type f -name '*musl.node' -delete
     rm -rf "$out/lib/t3code/node_modules/@ff-labs/fff-bin-linux-"*-musl
   '';
 
