@@ -13,11 +13,11 @@
 
 let
   pname = "t3code-desktop-nightly";
-  version = "0.1.7-nightly.20261102.4093";
+  version = "0.1.7-nightly.20261103.4138";
 
   src = fetchurl {
     url = "https://github.com/pingdotgg/t3code/releases/download/v${version}/T3-Code-${version}-x86_64.AppImage";
-    hash = "sha256-nlKQ3Gk2aIgHnq5tLL8sH45QiGkRlCXwr2Kfo5f5D+s=";
+    hash = "sha256-V1YrK9UD6nH3gQZaTf/ieEKiZRhzA7xxBbDts1u4w2c=";
   };
 
   appimageContents = appimageTools.extract {
