@@ -5,6 +5,7 @@
   fetchurl,
   autoPatchelfHook,
   patchelf,
+  vulkan-loader,
   pname,
   version,
   packageLockJson,
@@ -48,7 +49,10 @@ stdenvNoCC.mkDerivation {
     compatiblePatchelf
     autoPatchelfHook
   ];
-  buildInputs = lib.optionals stdenv.hostPlatform.isLinux [ stdenv.cc.cc.lib ];
+  buildInputs = lib.optionals stdenv.hostPlatform.isLinux [
+    stdenv.cc.cc.lib
+    vulkan-loader
+  ];
   dontBuild = true;
   dontStrip = true;
 
@@ -62,10 +66,12 @@ stdenvNoCC.mkDerivation {
   '';
 
   # Nix Linux uses glibc. Release archives also bundle musl-only alternatives,
-  # with both .musl.node and -musl.node filename suffixes.
+  # with both .musl.node and -musl.node filename suffixes. Koffi instead puts
+  # its alternatives in musl_<arch> directories alongside the glibc builds.
   preFixup = lib.optionalString stdenv.hostPlatform.isLinux ''
     find "$out/lib/t3code/node_modules" -type f -name '*musl.node' -delete
     rm -rf "$out/lib/t3code/node_modules/@ff-labs/fff-bin-linux-"*-musl
+    rm -rf "$out/lib/t3code/node_modules/@koromix/koffi-linux-"*/musl_*
   '';
 
   # Run the installed, fully patched executable, not just a build-time tool.
