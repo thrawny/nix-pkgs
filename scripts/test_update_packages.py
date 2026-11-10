@@ -44,9 +44,18 @@ class HerdrReleaseTests(unittest.TestCase):
                     patch.object(
                         updater.urllib.request, "urlopen",
                         side_effect=lambda *a, **kw: io.BytesIO(json.dumps(release).encode()),
-                    ),
+                    ) as request,
                 ):
                     changed, _ = updater.update_herdr(component)
+                    args, kwargs = request.call_args
+                    self.assertEqual(
+                        args[0].full_url,
+                        f"https://releases.herdr.dev/{component}/latest.json",
+                    )
+                    self.assertEqual(
+                        args[0].get_header("User-agent"), "nix-pkgs-updater/1.0"
+                    )
+                    self.assertEqual(kwargs, {"timeout": 60})
                     self.assertTrue(changed)
                     self.assertEqual(updater.current_version(package), "0.2.0")
                     integrity = "sha256-" + base64.b64encode(bytes.fromhex("ab" * 32)).decode()

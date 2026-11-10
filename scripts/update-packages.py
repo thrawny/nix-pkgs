@@ -443,9 +443,12 @@ def update_herdr(component: str) -> tuple[bool, str | None]:
     name = f"herdr-{component}"
     package_path = ROOT / f"packages/{name}/package.nix"
     current = current_version(package_path)
-    with urllib.request.urlopen(
-        f"https://releases.herdr.dev/{component}/latest.json", timeout=60
-    ) as response:
+    # The release CDN rejects urllib's default Python user agent.
+    request = urllib.request.Request(
+        f"https://releases.herdr.dev/{component}/latest.json",
+        headers={"User-Agent": "nix-pkgs-updater/1.0"},
+    )
+    with urllib.request.urlopen(request, timeout=60) as response:
         release = json.load(response)
     latest = release["version"]
     semver_tuple(latest)
