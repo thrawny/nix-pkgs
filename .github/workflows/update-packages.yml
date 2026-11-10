@@ -106,13 +106,15 @@ jobs:
       - name: Build Linux packages
         run: |
           set -euo pipefail
-          nix build .#acpx .#firecrawl-cli .#posthog-cli .#t3code .#t3code-nightly .#t3code-desktop-nightly --print-out-paths > "$RUNNER_TEMP/linux-package-paths"
+          nix build .#acpx .#firecrawl-cli .#herdr-app .#herdr-core .#posthog-cli .#t3code .#t3code-nightly .#t3code-desktop-nightly --print-out-paths > "$RUNNER_TEMP/linux-package-paths"
 
       - name: Smoke test Linux packages
         run: |
           set -euo pipefail
           nix run .#acpx -- --version
           nix run .#firecrawl-cli -- --version
+          nix run .#herdr-app -- --version
+          nix run .#herdr-core -- --version
           nix run .#posthog-cli -- --version
           nix run .#t3code -- --version
           nix run .#t3code-nightly -- --version

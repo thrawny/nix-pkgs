@@ -439,6 +439,52 @@ def update_t3code_desktop_nightly() -> tuple[bool, str | None]:
     return True, f"t3code-desktop-nightly: {current} -> {latest}"
 
 
+def update_herdr(component: str) -> tuple[bool, str | None]:
+    name = f"herdr-{component}"
+    package_path = ROOT / f"packages/{name}/package.nix"
+    current = current_version(package_path)
+    with urllib.request.urlopen(
+        f"https://releases.herdr.dev/{component}/latest.json", timeout=60
+    ) as response:
+        release = json.load(response)
+    latest = release["version"]
+    semver_tuple(latest)
+    asset_url = (
+        f"https://releases.herdr.dev/{component}/{latest}/{name}-linux-x86_64.tar.gz"
+    )
+    asset = release["targets"]["linux-x86_64"]
+    if asset["url"] != asset_url or not re.fullmatch(
+        r"[0-9a-fA-F]{64}", asset.get("sha256") or ""
+    ):
+        raise RuntimeError(f"Missing or unverifiable {name} release asset")
+    integrity = "sha256-" + base64.b64encode(
+        bytes.fromhex(asset["sha256"])
+    ).decode("ascii")
+    text = set_version(read(package_path), latest)
+    text, replacements = re.subn(
+        r'(src = fetchurl \{.*?\n\s*hash = )"[^"]+";',
+        rf'\1"{integrity}";',
+        text,
+        count=1,
+        flags=re.DOTALL,
+    )
+    if replacements != 1:
+        raise RuntimeError(f"Could not update {name} source hash")
+    if text == read(package_path):
+        print(f"{name} already up to date ({current})")
+        return False, None
+    write(package_path, text)
+    return True, f"{name}: {current} -> {latest}"
+
+
+def update_herdr_app() -> tuple[bool, str | None]:
+    return update_herdr("app")
+
+
+def update_herdr_core() -> tuple[bool, str | None]:
+    return update_herdr("core")
+
+
 def main() -> int:
     changed: list[str] = []
     for updater in (
@@ -448,6 +494,8 @@ def main() -> int:
         update_t3code_desktop_nightly,
         update_firecrawl_cli,
         update_portless,
+        update_herdr_app,
+        update_herdr_core,
     ):
         did_change, message = updater()
         if did_change and message:

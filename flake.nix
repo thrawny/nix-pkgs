@@ -35,7 +35,9 @@
           t3-nightly = t3code-nightly;
           default = t3code;
         }
-        // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
+        // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") rec {
+          herdr-core = pkgs.callPackage ./packages/herdr-core/package.nix { };
+          herdr-app = pkgs.callPackage ./packages/herdr-app/package.nix { inherit herdr-core; };
           t3code-desktop = pkgs.callPackage ./packages/t3code-desktop/package.nix { };
           t3code-desktop-nightly = pkgs.callPackage ./packages/t3code-desktop-nightly/package.nix { };
         }
@@ -54,6 +56,8 @@
           t3-nightly = final.t3code-nightly;
         }
         // prev.lib.optionalAttrs (prev.stdenv.hostPlatform.system == "x86_64-linux") {
+          herdr-core = final.callPackage ./packages/herdr-core/package.nix { };
+          herdr-app = final.callPackage ./packages/herdr-app/package.nix { };
           t3code-desktop = final.callPackage ./packages/t3code-desktop/package.nix { };
           t3code-desktop-nightly = final.callPackage ./packages/t3code-desktop-nightly/package.nix { };
         };

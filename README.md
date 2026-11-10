@@ -9,6 +9,8 @@ Personal Nix package set for small or finicky packages that do not belong in dot
 - `t3code-nightly` / `t3-nightly` - T3 Code CLI/server following npm's `nightly` tag.
 - `t3code-desktop` - Pinned stable T3 Code desktop app (Linux x86_64).
 - `t3code-desktop-nightly` - T3 Code desktop AppImage matching our nightly CLI/server release (Linux x86_64), with a separate launcher and icon. Updates are managed by Nix, not the app's self-updater.
+- `herdr-app` - Native Herdr desktop app (Linux x86_64), wrapped with `herdr-core` and graphics libraries. Nix owns updates.
+- `herdr-core` - Persistent terminal runtime and `hc` CLI (Linux x86_64).
 - `firecrawl-cli` - Firecrawl CLI built from upstream source with pnpm.
 - `posthog-cli` - PostHog CLI from the official release binaries.
 - `portless` - Named development URLs with optional Tailscale sharing, using Node 24.

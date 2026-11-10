@@ -35,5 +35,23 @@ check-t3code-desktop:
     desktop=$(nix build .#t3code-desktop-nightly --no-link --print-out-paths)
     nix shell --inputs-from . nixpkgs#python3 nixpkgs#xvfb-run -c python3 scripts/smoke_t3code_desktop.py "$desktop"
 
+# Validate the Linux desktop and core, optionally checking personal mods.
+check-herdr config="" nixpkgs="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    nix_args=()
+    if [[ -n {{quote(nixpkgs)}} ]]; then
+        nix_args+=(--override-input nixpkgs {{quote(nixpkgs)}} --no-write-lock-file)
+    fi
+    app=$(nix build "${nix_args[@]}" .#herdr-app --no-link --print-out-paths)
+    core=$(nix build "${nix_args[@]}" .#herdr-core --no-link --print-out-paths)
+    "$app/bin/herdr-app" --version
+    "$core/bin/herdr-core" --version
+    if [[ -n {{quote(config)}} ]]; then
+        for mod in {{quote(config)}}/mods/thrawny-*; do
+            "$app/bin/herdr-app" check "$mod"
+        done
+    fi
+
 update:
     nix develop -c scripts/update-packages.py

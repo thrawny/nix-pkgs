@@ -16,6 +16,68 @@ updater = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(updater)
 
 
+class HerdrReleaseTests(unittest.TestCase):
+    def test_release_updates_version_and_checksum_for_both_packages(self):
+        for component in ("app", "core"):
+            with self.subTest(component=component), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                package = root / f"packages/herdr-{component}/package.nix"
+                package.parent.mkdir(parents=True)
+                package.write_text(
+                    '  version = "0.1.0";\n'
+                    '  src = fetchurl {\n    hash = "old";\n  };\n'
+                )
+                release = {
+                    "version": "0.2.0",
+                    "targets": {
+                        "linux-x86_64": {
+                            "url": (
+                                f"https://releases.herdr.dev/{component}/0.2.0/"
+                                f"herdr-{component}-linux-x86_64.tar.gz"
+                            ),
+                            "sha256": "ab" * 32,
+                        }
+                    },
+                }
+                with (
+                    patch.object(updater, "ROOT", root),
+                    patch.object(
+                        updater.urllib.request, "urlopen",
+                        side_effect=lambda *a, **kw: io.BytesIO(json.dumps(release).encode()),
+                    ),
+                ):
+                    changed, _ = updater.update_herdr(component)
+                    self.assertTrue(changed)
+                    self.assertEqual(updater.current_version(package), "0.2.0")
+                    integrity = "sha256-" + base64.b64encode(bytes.fromhex("ab" * 32)).decode()
+                    self.assertIn(f'hash = "{integrity}";', package.read_text())
+                    self.assertEqual(updater.update_herdr(component), (False, None))
+
+    def test_unverifiable_release_leaves_package_untouched(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            package = root / "packages/herdr-app/package.nix"
+            package.parent.mkdir(parents=True)
+            original = 'version = "0.1.0";\nsrc = fetchurl {\n hash = "old";\n};\n'
+            package.write_text(original)
+            asset_url = "https://releases.herdr.dev/app/0.2.0/herdr-app-linux-x86_64.tar.gz"
+            for asset in (
+                {"url": asset_url, "sha256": "bad"},
+                {"url": "https://example.com/wrong", "sha256": "ab" * 32},
+            ):
+                release = {"version": "0.2.0", "targets": {"linux-x86_64": asset}}
+                with (
+                    patch.object(updater, "ROOT", root),
+                    patch.object(
+                        updater.urllib.request, "urlopen",
+                        return_value=io.BytesIO(json.dumps(release).encode()),
+                    ),
+                    self.assertRaises(RuntimeError),
+                ):
+                    updater.update_herdr("app")
+                self.assertEqual(package.read_text(), original)
+
+
 class T3ReleaseTests(unittest.TestCase):
     version = "0.1.1-nightly.20261016.3203"
     platforms = ("linux-x64", "linux-arm64", "darwin-arm64")
@@ -213,6 +275,8 @@ class T3DesktopNightlyTests(unittest.TestCase):
             ),
             patch.object(updater, "update_firecrawl_cli", return_value=(False, None)),
             patch.object(updater, "update_portless", return_value=(False, None)),
+            patch.object(updater, "update_herdr_app", return_value=(False, None)),
+            patch.object(updater, "update_herdr_core", return_value=(False, None)),
             patch.dict(updater.os.environ, {}, clear=True),
             patch("sys.stdout", new_callable=io.StringIO),
         ):
