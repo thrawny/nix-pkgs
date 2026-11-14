@@ -205,7 +205,7 @@ class T3DesktopNightlyTests(unittest.TestCase):
         self.desktop.write_text(
             '  version = "old";\n  src = fetchurl {\n    hash = "old-hash";\n  };\n'
         )
-        self.asset_name = f"T3-Code-{self.version}-x86_64.AppImage"
+        self.asset_name = "T3-Code-Nightly-x86_64.AppImage"
         self.asset = {
             "name": self.asset_name,
             "browser_download_url": (

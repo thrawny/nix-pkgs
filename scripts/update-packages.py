@@ -402,7 +402,8 @@ def update_t3code_desktop_nightly() -> tuple[bool, str | None]:
         print(f"t3code-desktop-nightly already up to date ({current})")
         return False, None
 
-    asset_name = f"T3-Code-{latest}-x86_64.AppImage"
+    # Nightly releases publish the AppImage under a version-less name.
+    asset_name = "T3-Code-Nightly-x86_64.AppImage"
     asset_url = (
         f"https://github.com/pingdotgg/t3code/releases/download/v{latest}/{asset_name}"
     )
