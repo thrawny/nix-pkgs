@@ -1,6 +1,6 @@
 {
   "name": "t3",
-  "version": "0.1.11-nightly.20261117.4838",
+  "version": "0.1.11-nightly.20261118.4890",
   "description": "T3 Code CLI. Downloads the self-contained executable for this platform from the GitHub Release.",
   "license": "MIT",
   "repository": {
