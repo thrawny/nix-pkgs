@@ -9,6 +9,7 @@ Nix build sandbox). No agent credentials or graphical login are required.
 from __future__ import annotations
 
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -26,7 +27,8 @@ def main() -> None:
         (package / "share/icons/hicolor").glob("*/apps/t3code-desktop-nightly.png")
     )
 
-    with tempfile.TemporaryDirectory(prefix="t3code-desktop-smoke-") as temporary:
+    temporary = tempfile.mkdtemp(prefix="t3code-desktop-smoke-")
+    try:
         root = Path(temporary)
         runtime = root / "runtime"
         runtime.mkdir(mode=0o700)
@@ -112,15 +114,55 @@ pty.onExit(({exitCode}) => {
             finally:
                 # Include Electron's backend and renderer children, not just
                 # the xvfb-run wrapper. Always clean up, including on failure.
-                try:
-                    os.killpg(process.pid, signal.SIGTERM)
-                except ProcessLookupError:
-                    pass
-                try:
-                    process.wait(timeout=10)
-                except subprocess.TimeoutExpired:
-                    os.killpg(process.pid, signal.SIGKILL)
-                    process.wait()
+                stop_process_group(process)
+
+    finally:
+        remove_tree(temporary)
+
+
+def group_alive(pgid: int) -> bool:
+    try:
+        os.killpg(pgid, 0)
+    except ProcessLookupError:
+        return False
+    return True
+
+
+def stop_process_group(process: subprocess.Popen) -> None:
+    """Stop every process in the group, not just the xvfb-run wrapper.
+
+    Electron's backend and renderer children can outlive the wrapper for a
+    moment and keep writing into the temporary HOME.
+    """
+    pgid = process.pid
+    for sig, grace in ((signal.SIGTERM, 10), (signal.SIGKILL, 5)):
+        try:
+            os.killpg(pgid, sig)
+        except ProcessLookupError:
+            break
+        deadline = time.monotonic() + grace
+        # poll() reaps the wrapper so its pid stops counting as alive.
+        while process.poll() is None or group_alive(pgid):
+            if time.monotonic() >= deadline:
+                break
+            time.sleep(0.1)
+        if not group_alive(pgid):
+            break
+    process.wait()
+
+
+def remove_tree(path: str) -> None:
+    # Children that detached from the group (e.g. via setsid) may still be
+    # flushing caches for a moment after the group exits.
+    for _ in range(20):
+        try:
+            shutil.rmtree(path)
+            return
+        except FileNotFoundError:
+            return
+        except OSError:
+            time.sleep(0.5)
+    shutil.rmtree(path, ignore_errors=True)
 
 
 if __name__ == "__main__":
