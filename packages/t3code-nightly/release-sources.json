@@ -1,14 +1,14 @@
 {
   "linux-x64": {
-    "resolved": "https://github.com/pingdotgg/t3code/releases/download/v0.1.12-nightly.20261123.5151/t3-0.1.12-nightly.20261123.5151-linux-x64.tar.gz",
-    "integrity": "sha256-qfJeSQSGOirD0f+ZKTeZd88CYgW7e/rIG42g8OVbBiM="
+    "resolved": "https://github.com/pingdotgg/t3code/releases/download/v0.1.12-nightly.20261124.5209/t3-0.1.12-nightly.20261124.5209-linux-x64.tar.gz",
+    "integrity": "sha256-2Ps9H9TSNkmuhceid1+wldQaAorzU1JW/Xlmw8bO/4o="
   },
   "linux-arm64": {
-    "resolved": "https://github.com/pingdotgg/t3code/releases/download/v0.1.12-nightly.20261123.5151/t3-0.1.12-nightly.20261123.5151-linux-arm64.tar.gz",
-    "integrity": "sha256-9qysXxdzE6+uoSE5tDuXRR4k358LGp84ISwdCVIiKWs="
+    "resolved": "https://github.com/pingdotgg/t3code/releases/download/v0.1.12-nightly.20261124.5209/t3-0.1.12-nightly.20261124.5209-linux-arm64.tar.gz",
+    "integrity": "sha256-UEQnXSSgQbfDuGvjqKNy5uC5b4jLntvOuoZkCEJ6/cA="
   },
   "darwin-arm64": {
-    "resolved": "https://github.com/pingdotgg/t3code/releases/download/v0.1.12-nightly.20261123.5151/t3-0.1.12-nightly.20261123.5151-darwin-arm64.tar.gz",
-    "integrity": "sha256-XQPCKIIo0wBmwB01w6LVv6E7R3KlxwcBzHvw/js+5w8="
+    "resolved": "https://github.com/pingdotgg/t3code/releases/download/v0.1.12-nightly.20261124.5209/t3-0.1.12-nightly.20261124.5209-darwin-arm64.tar.gz",
+    "integrity": "sha256-vaxeJ8vZlLEP8RunsjIdgka97DczG43y/n8c3ccIAXA="
   }
 }
