@@ -2,8 +2,8 @@
 
 callPackage ../t3code/build.nix {
   pname = "t3code-nightly";
-  version = "0.1.13-nightly.20261125.5258";
-  srcHash = "sha512-Uyk4dRrV15PVg7NZ39gCDP1CVmxLmu/GE9ZAqMnhf+4GFC2HPcQQh7ReFLuU6cqIxVdGp4U+DR6kTxYPrjnVCw==";
+  version = "0.1.13-nightly.20261126.5305";
+  srcHash = "sha512-FqcV5iw8j5vfDpIv43t7D7GGrdNqrTbxqjAl4whRxtu10gCrJgRQgM0ZM7RPnHuRON0ivCe7cdmKexBvOnO7nQ==";
   releaseSourcesFile = ./release-sources.json;
   packageJsonFile = ./package.json;
   packageLockFile = ./package-lock.json;

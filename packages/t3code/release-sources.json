@@ -1,14 +1,14 @@
 {
   "linux-x64": {
-    "resolved": "https://github.com/pingdotgg/t3code/releases/download/v0.1.12/t3-0.1.12-linux-x64.tar.gz",
-    "integrity": "sha256-m6PbRuNVT7mXD9Xt6egjwvbW9nY/QDQL1MjvawlQHFQ="
+    "resolved": "https://github.com/pingdotgg/t3code/releases/download/v0.1.13/t3-0.1.13-linux-x64.tar.gz",
+    "integrity": "sha256-ZOD4RG0/YYsVfU5aCmgIqzyL8aGz5E6rMQDlVL4F5dc="
   },
   "linux-arm64": {
-    "resolved": "https://github.com/pingdotgg/t3code/releases/download/v0.1.12/t3-0.1.12-linux-arm64.tar.gz",
-    "integrity": "sha256-Kc+6sZEXqkNvFwA4Kvuc/l1+9HYJyrupNWJxoLylrZg="
+    "resolved": "https://github.com/pingdotgg/t3code/releases/download/v0.1.13/t3-0.1.13-linux-arm64.tar.gz",
+    "integrity": "sha256-xVPBfbBwMNAygImJQn21AivwQCfrzsIhjGn7Gl+hN38="
   },
   "darwin-arm64": {
-    "resolved": "https://github.com/pingdotgg/t3code/releases/download/v0.1.12/t3-0.1.12-darwin-arm64.tar.gz",
-    "integrity": "sha256-G3jJdUFgYjZhxZQqfiL1pipkvx+Wqzl/ULvHxrYRXKQ="
+    "resolved": "https://github.com/pingdotgg/t3code/releases/download/v0.1.13/t3-0.1.13-darwin-arm64.tar.gz",
+    "integrity": "sha256-2DsuHvlVfhLzQKcplkYgPNzdXuCvMnLmkiwmQQz+85Y="
   }
 }

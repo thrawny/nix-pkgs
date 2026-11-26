@@ -9,13 +9,13 @@
 
 buildNpmPackage (finalAttrs: {
   pname = "acpx";
-  version = "0.22.0";
+  version = "0.23.0";
 
   nodejs = nodejs_24;
 
   src = fetchurl {
     url = "https://registry.npmjs.org/acpx/-/acpx-${finalAttrs.version}.tgz";
-    hash = "sha512-dD+xgRwLFOfwL7/VEdn3zrVNFleFoIA0EUETK35w/e+MeYB5FN5+vKERoV60d4SUirTqX610yb/wN+2OFcjpMQ==";
+    hash = "sha512-NlViJc5ocUVgzuPdvmWbN9qyokTfeLbZKDdjNgDT7RsvbpS/wGjKsi2GxKlD8l8MuufZfKy8h/LFwQVbON2VzA==";
   };
 
   npmDeps = importNpmLock {
